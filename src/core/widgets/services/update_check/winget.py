@@ -26,6 +26,15 @@ from core.utils.win32.structs import COORD, PROCESS_INFORMATION, STARTUPINFOEXW
 # PowerShell executable (prefer pwsh, fall back to powershell)
 _PWSH = shutil.which("pwsh") or shutil.which("powershell") or "powershell.exe"
 
+# The Git installer aborts (exit code 1) while any process runs from the Git install dir (e.g. Git Bash).
+# Single quotes only: the script is embedded in a double-quoted command line.
+_GIT_PACKAGE_ID = "Git.Git"
+_GIT_IN_USE_CHECK = (
+    "$(Get-Process | Where-Object { $_.Path -like ((Split-Path (Split-Path (Get-Command git).Source)) + '\\*') })"
+)
+_GIT_SKIP_MESSAGE = (
+    "Write-Host 'Skipping Git.Git: close Git Bash and other Git processes, then upgrade again.' -ForegroundColor Yellow"
+)
 
 # Regex to strip ANSI/VT escape sequences emitted by the pseudo-terminal
 _ANSI_RE = re.compile(
@@ -288,11 +297,14 @@ def upgrade_packages(package_ids: list[str]) -> None:
         lines.append("Write-Host ''")
         for pid in package_ids:
             lines.append(f"Write-Host '>> Upgrading {pid} ...' -ForegroundColor Cyan")
-            lines.append(
+            upgrade = (
                 f"gsudo winget upgrade --id '{pid}'"
                 f" --accept-source-agreements --accept-package-agreements"
                 f" --disable-interactivity --force"
             )
+            if pid == _GIT_PACKAGE_ID:
+                upgrade = f"if ({_GIT_IN_USE_CHECK}) {{ {_GIT_SKIP_MESSAGE} }} else {{ {upgrade} }}"
+            lines.append(upgrade)
         script = "; ".join(lines)
         command = f'start "Winget Upgrade" "{powershell}" -NoExit -Command "{script}"'
     else:
