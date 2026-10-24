@@ -289,7 +289,7 @@ def upgrade_packages(package_ids: list[str]) -> None:
         for pid in package_ids:
             lines.append(f"Write-Host '>> Upgrading {pid} ...' -ForegroundColor Cyan")
             lines.append(
-                f"winget upgrade --id '{pid}'"
+                f"gsudo winget upgrade --id '{pid}'"
                 f" --accept-source-agreements --accept-package-agreements"
                 f" --disable-interactivity --force"
             )
