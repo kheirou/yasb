@@ -1,0 +1,24 @@
+[tools]
+python = "3.14"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks."dev:setup"]
+description = "Install test deps and the pinned ruff into .venv"
+run = "uv pip install -q -e \".[test]\" ruff==0.17.1"
+
+[tasks."dev:lint"]
+description = "ruff format --check and ruff check (as in pr-check.yaml)"
+depends = ["dev:setup"]
+run = ["ruff format --check .", "ruff check ."]
+
+[tasks."dev:test"]
+description = "pytest (as in tests.yaml): mise run dev:test -- <pytest args>"
+depends = ["dev:setup"]
+env = { PYTHONUTF8 = "1" }
+run = "python -m pytest"
+
+[tasks."dev:ci"]
+description = "Local CI gate: lint + tests"
+depends = ["dev:lint", "dev:test"]
